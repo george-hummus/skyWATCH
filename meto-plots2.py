@@ -34,8 +34,9 @@ pressures.append(bme280.pressure)
 #setting up times
 times = []
 time_now = datetime.datetime.utcnow()
-for j in range(len(temps)):
-    c_time = 200 - (j+1)*10 # change in time to get to 1st 2nd 3rd times etc., from now
+step = len(temps)
+for j in range(step):
+    c_time = (10*step) - ((j+1)*10) # change in time to get to 1st 2nd 3rd times etc., from now
     time = time_now - datetime.timedelta(minutes=c_time) #time to be added to list
     times.append(time) #appending to list
 
