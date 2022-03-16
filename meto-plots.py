@@ -17,7 +17,7 @@ humids = []
 pressures = []
 
 while True:
-    times.append(datetime.datetime.now(timezone.utc))
+    times.append(datetime.datetime.utcnow())
     temps.append(bme280.temperature)
     humids.append(bme280.humidity)
     pressures.append(bme280.pressure)
