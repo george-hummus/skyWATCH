@@ -3,7 +3,7 @@ while :
 do
   counter=0 #initalises counter
   mkdir meto_out/$(date +%Y%m%d) #makes directory with the date
-
+  echo "start day"
   until [ $counter -eq 144 ] #144 new plots per day
   do
 

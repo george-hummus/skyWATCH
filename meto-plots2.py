@@ -31,14 +31,19 @@ temps.append(bme280.temperature)
 humids.append(bme280.humidity)
 pressures.append(bme280.pressure)
 
+#converting strings into floats
+temps = [float(tentry) for tentry in temps]
+humids = [float(hentry) for hentry in humids]
+pressures = [float(pentry) for pentry in pressures]
+
 #setting up times
 times = []
 time_now = datetime.datetime.utcnow()
 step = len(temps)
 for j in range(step):
     c_time = (10*step) - ((j+1)*10) # change in time to get to 1st 2nd 3rd times etc., from now
-    time = time_now - datetime.timedelta(minutes=c_time) #time to be added to list
-    times.append(time) #appending to list
+    t = time_now - datetime.timedelta(minutes=c_time) #time to be added to list
+    times.append(t) #appending to list
 
 
 #SETTING UP FIG + animation
@@ -91,3 +96,5 @@ with open('meto_out/data.csv', 'w') as f:
     write.writerow(temps)
     write.writerow(humids)
     write.writerow(pressures)
+
+time.sleep(600) #sleep within the python script as otherwise it seems unreliable
