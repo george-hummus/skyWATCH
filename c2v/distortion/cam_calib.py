@@ -1,6 +1,12 @@
 import numpy as np
 import cv2 as cv
 import glob
+import argparse
+
+#sys arguments
+parser = argparse.ArgumentParser(description = "Calibrates the camera from images taken of checkerboard. Calibration images should end in .PNG, test image to be undistorted should be called 'test.png'.")
+parser.add_argument('dir' , type = str, help = 'directory that calibration frames are in.')
+args = parser.parse_args()
 
 # termination criteria
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -13,7 +19,7 @@ objp[:,:2] = np.mgrid[0:7,0:9].T.reshape(-1,2)
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-images = glob.glob('CB_images/*.PNG') #looks for all the checkerboard CB_images
+images = glob.glob(f'{args.dir}/*.PNG') #looks for all the checkerboard directory
 
 for fname in images:
     img = cv.imread(fname)
@@ -41,7 +47,7 @@ cv.destroyAllWindows()
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, grey.shape[::-1], None, None)
 
 #load in test image
-img = cv.imread('CB_images/test.png')
+img = cv.imread(f'{args.dir}/test.png')
 h,  w = img.shape[:2]
 newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
 
@@ -51,10 +57,10 @@ dst = cv.undistort(img, mtx, dist, None, newcameramtx)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-cv.imwrite('CB_images/test_UD.png', dst)
+cv.imwrite(f'{args.dir}/test_UD.png', dst)
 
 #save parameters
-np.savez("cam_pars",ret, mtx, dist, rvecs, tvecs)
+np.savez(f"{args.dir}_cps",ret, mtx, dist, rvecs, tvecs)
 
 #error on the results
 mean_error = 0
