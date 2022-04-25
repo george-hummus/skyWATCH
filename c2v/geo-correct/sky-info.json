@@ -1,0 +1,23 @@
+{
+    "hostname": "murdoc",
+    "file": "20220205_235624_murdoc.jpg",
+    "date": "2022-02-05 23:56:24",
+    "location": {
+        "name": "roque",
+        "latitude": 28.6468866,
+        "longitude": -17.7742491,
+        "elevation": 2326
+    },
+    "moon": {
+        "elevation": "-7.4",
+        "illumination": "25.7"
+    },
+    "sun": {
+        "elevation": "-65.8"
+    },
+    "mode": "night",
+    "parameters": "-md 3 -dg 3 -ag 8 -st --drc off -ex off --awb greyworld",
+    "width": 4056,
+    "height": 3040,
+    "exposure": 98.199684
+}

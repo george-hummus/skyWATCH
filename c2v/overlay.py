@@ -75,5 +75,3 @@ map_ol = cv.resize(distorted_map, [x,x]) #resize map to be same width as sky ima
 lower = int((x-y)/2) #indices so crop is at centre of image
 map_ol =  map_ol[lower:lower+y] #crop the distored map so it has same dimensions as sky
 skyblend = cv.addWeighted(sky,0.7,map_ol,0.2,0)
-
-cv.imwrite(f'{out_path}skyblend.{args.ext}',skyblend)
