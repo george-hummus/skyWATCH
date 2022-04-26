@@ -14,15 +14,21 @@ Author: George Hume
 2022
 """)
 #adding arguments to praser object
-parser.add_argument('cords' , type = str, help = 'Path to the CSV file containing the coordinates of corresponding stars in the all-sky image and sky-map.')
+parser.add_argument('coords' , type = str, help = 'Path to the CSV file containing the coordinates of corresponding stars in the all-sky image and sky-map.')
 parser.add_argument('--ASimage' , type = str, help = 'Path to the all-sky image file, if you want transformation to be applied to it at the end. By default this this will not occur', default = "None")
 
 #load in a csv file with x,y points from all-sky image and x',y' points from the skymap for target stars
-coords=np.loadtxt("star-cords.csv",delimiter=",",dtype="int")
-x = coords[0]
-y = coords[1]
-x1 = coords[2]
-x2 = coords[3]
+coords=np.loadtxt(args.coords,delimiter=",",dtype="int",skiprows=1)
+x,y = coords.T[1], coords.T[2] #x and y for sky-map are in 2nd and 3rd columns
+x1, y1 = coords.T[3], coords.T[4] #x and y for all-sky image are in 4th and 5th columns
+
+#remove targets which don't appear on all-sky image (marked with zeros, make sure no targets have coordinates of zero!)
+unmatch = x1!=0 #mask
+#apply mask to x,y,x',y'
+x = x[unmatch]
+y = y[unmatch]
+x1 = x1[unmatch]
+y1 = y1[unmatch]
 
 #do polynomial least fit to find warping coefficents of the X and Y transformation matrices
 

@@ -1,0 +1,56 @@
+*** SKYWATCH LINKS ***
+
+cloud detection 
+- https://www.researchgate.net/publication/334374521_Development_of_an_all-sky_imaging_system_for_cloud_cover_assessment
+- https://amt.copernicus.org/articles/11/593/2018/amt-11-593-2018.pdf
+- https://sigport.org/sites/default/files/docs/DIY%20Sky%20Imager%20Project_1.pdf
+    - https://github.com/FSavoy/DIY-sky-imager
+- https://www.researchgate.net/publication/317022372_Cloud_Detection_and_Prediction_with_All_Sky_Cameras
+    - https://github.com/tudo-astroparticlephysics/starry_night/tree/master/starry_night
+
+virtualcam - https://github.com/kaustubh-sadekar/VirtualCam
+
+lens distortion - https://learnopencv.com/understanding-lens-distortion/
+camera calibration - https://learnopencv.com/camera-calibration-using-opencv/
+image formation - https://learnopencv.com/camera-calibration-using-opencv/
+
+distortion tutorial - https://docs.opencv.org/3.4/dc/dbb/tutorial_py_calibration.html
+
+redistorting
+- https://stackoverflow.com/questions/66895102/how-to-apply-distortion-on-an-image-using-opencv-or-any-other-library
+- https://answers.opencv.org/question/148670/re-distorting-a-set-of-points-after-camera-calibration/
+- https://stackoverflow.com/questions/21615298/opencv-distort-back/24231047#24231047
+* https://www.reddit.com/r/computervision/comments/mq45m1/calculate_and_use_inverse_of_opencv_distortion/
+
+virtualsky - https://virtualsky.lco.global/embed/custom.html
+
+astronomy camera - https://astronomy-imaging-camera.com/product/asi224mc
+allsky lens - https://www.amazon.es/gp/product/B078FGDVBH/ref=ppx_yo_dt_b_asin_title_o09_s00?ie=UTF8&psc=1
+
+controlling astronomy camera
+- software manual: https://astronomy-imaging-camera.com/manuals/ASI%20Cameras%20software%20Manual%20Linux%20OSX%20EN.pdf
+- https://www.openastroproject.org/oacapture/
+- https://indilib.org/forum/general/13-command-line-client-for-indiserver-indi-sx-ccd.html
+
+USB cameras (which astornomy camera doesn't seem to be)
+- video capture openCV: https://www.linuxtut.com/en/eda129635816ad871e9d/
+- video4linux devices: https://manpages.ubuntu.com/manpages/impish/man1/qv4l2.1.html
+- check avalible cams: https://askubuntu.com/questions/348838/how-to-check-available-webcams-from-the-command-line
+
+raspberry pi
+- backup: https://magpi.raspberrypi.com/articles/back-up-raspberry-pi (select root partition)
+- matplotlib - https://forums.raspberrypi.com/viewtopic.php?t=233037
+
+raspberry pi camera
+- https://www.raspberrypi.com/documentation/accessories/camera.html
+- https://roboticsbackend.com/raspberry-pi-camera-take-picture/
+- https://pyimagesearch.com/2015/03/30/accessing-the-raspberry-pi-camera-with-opencv-and-python/
+- https://projects.raspberrypi.org/en/projects/timelapse-setup/5
+- https://howchoo.com/pi/how-to-take-a-picture-with-your-raspberry-pi
+
+X11 forwarding (still havn't got this to work)
+https://raspberrypi.stackexchange.com/questions/114183/raspberry-pi-ssh-x11-forwarding
+- https://askubuntu.com/questions/633782/how-to-start-x-application-from-ssh
+
+
+
