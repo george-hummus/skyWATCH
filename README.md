@@ -6,5 +6,6 @@ Directory Guide:
 - c2v: cotains code being trialed for the image capture and post-processing of the all-sky camera (e.g., cloud detection, sky-map overlays, etc.)
   - distortion: code for finding distortion parameters of the all-sky camera sensor and lens.
   - geo-correct: the distortion method was not effective, so have moved to a method of geometric correction of the image using polynomial warping.
-- picam - contains test code for conrolling the Raspberry Pi High Quality Camera which can de depolyed as the all-sky camera in the skyWATCH devices.
+- picam: contains test code for conrolling the Raspberry Pi High Quality Camera which can de depolyed as the all-sky camera in the skyWATCH devices.
+- astro-info: a script which uses python package Skyfield to find the position of the sun and moon, so the astronomical conditions can be recoreded into a JSON file.
 
