@@ -1,0 +1,18 @@
+{
+    "time": "2022-05-19 12:02:11",
+    "location": {
+        "name": "observatory roque de la muchachos",
+        "latitude": 28.6468866,
+        "longitude": -17.7742491,
+        "elevation": 2326
+    },
+    "period of the day": "day time",
+    "sun": {
+        "altitude": 72.70357685689464
+    },
+    "moon": {
+        "altitude": -32.551597838478045,
+        "phase": 226.35188037678094,
+        "illumination": 0.8442513065154958
+    }
+}
