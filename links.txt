@@ -48,7 +48,7 @@ raspberry pi camera
 - https://projects.raspberrypi.org/en/projects/timelapse-setup/5
 - https://howchoo.com/pi/how-to-take-a-picture-with-your-raspberry-pi
 
-X11 forwarding (still havn't got this to work)
+X11 forwarding
 https://raspberrypi.stackexchange.com/questions/114183/raspberry-pi-ssh-x11-forwarding
 - https://askubuntu.com/questions/633782/how-to-start-x-application-from-ssh
 
@@ -71,8 +71,18 @@ https://raspberrypi.stackexchange.com/questions/114183/raspberry-pi-ssh-x11-forw
     - https://towardsdatascience.com/estimating-a-homography-matrix-522c70ec4b2c
     - https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html#ga4b3841447530523e5272ec05c5d1e411
     - https://docs.opencv.org/4.x/d9/dab/tutorial_homography.html
+   
+- skyfield documentation: https://rhodesmill.org/skyfield/
+
+- Checking images for similarity with OpenCV: https://stackoverflow.com/questions/11541154/checking-images-for-similarity-with-opencv
+- Feature matching tutorial: https://docs.opencv.org/4.x/dc/dc3/tutorial_py_matcher.html
+   
 - Other
     - Book on multiple view geometry: https://books.google.es/books?hl=en&lr=&id=si3R3Pfa98QC&oi=fnd&pg=PR11&dq=Hartley,+R.,+and+A.+Zisserman,++Multiple+View+Geometry+in+Computer+Vision,++Cambridge+University+Press,+2003.&ots=aTtYlqd69L&sig=mCvdwaHdEX96tKeMO9TYRNBfzGg&redir_esc=y#v=onepage&q=Hartley%2C%20R.%2C%20and%20A.%20Zisserman%2C%20%20Multiple%20View%20Geometry%20in%20Computer%20Vision%2C%20%20Cambridge%20University%20Press%2C%202003.&f=false
     - whitebox image recfification: https://jblindsay.github.io/ghrg/Whitebox/Help/ImageRectification.html
+    
+
+
+
     
 
