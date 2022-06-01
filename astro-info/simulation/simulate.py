@@ -7,6 +7,7 @@ import glob
 import cv2 as cv
 import numpy as np
 from tqdm import tqdm
+from exif import Image
 
 #location of roque
 name = "observatory roque de la muchachos"
@@ -21,15 +22,17 @@ ts = load.timescale() #loads time scale
 earth, sun, moon = eph['earth'],eph['sun'],eph['moon']
 ORM = earth + wgs84.latlon(roqueN * N, roqueE * E, elevation_m=roqueELV)
 
-img_info = glob.glob("/media/george/ZORIN-OS-16/20220407/*.json")
+imgs = glob.glob("/media/george/Work/skyWATCH/20220407/*.jpg")
+temps = glob.glob('dome-templates/hf**.jpg') #loads in templates
 
-for i in img_info[0:5]:
+for i in imgs:
 
-    #read json
-    with open(i, 'r') as j:
-        contents = json.loads(j.read())
-    date = dt.datetime.strptime(contents["date"], '%Y-%m-%d %H:%M:%S') #converts date into datetime object
-    date=date.replace(tzinfo=utc) #adds utc time zone to datetime object
+    #read image metadata
+    with open(i, "rb") as photo:
+        image = Image(photo)
+
+    date = dt.datetime.strptime(image['datetime'], '%Y:%m:%d %H:%M:%S') #converts date into datetime object
+    date=date.replace(tzinfo=utc) #adds utc time zone to datetime object - may need to chnage this
     tnow = ts.from_datetime(date) #saves time as skyfield time object
 
     tnowdt = tnow.utc_datetime().strftime("%Y-%m-%d %H:%M:%S") #string version
@@ -57,15 +60,13 @@ for i in img_info[0:5]:
     mill = almanac.fraction_illuminated(eph,"moon",tnow)
 
 
-
     ## DETECT IF DOME IS OPEN OR CLOSED ##
     # NEW METHOD #
-    img_name = f"{i[0:-5]}.jpg"
 
-    img = cv.imread(img_name,0)
+    img = cv.imread(i,0)
 
     #highlight dome fetures
-    img = np.invert(cv.equalizeHist(img)).clip(min=th)
+    img = np.invert(cv.equalizeHist(img)).clip(min=150)
     #histogram flattener normalises the brightness of the images
 
     img2 = img.copy()
@@ -74,16 +75,17 @@ for i in img_info[0:5]:
     method = eval('cv.TM_CCOEFF')
 
     results = []
-    limsx = [[2910,2940],[805,825]]
-    limsy = [[205,225],[610,640]]
+    locs = []
+    limsx = [[2884,2984],[774,874]]
+    limsy = [[167,267],[576,676]]
 
     for j in range(2): # 2 templates to match (either can match for +ve result)
         template = cv.imread(temps[j],0)
-        w, h = template.shape[::-1]
 
         # Apply template Matching
         res = cv.matchTemplate(img,template,method)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+        locs.append(max_loc)
 
         #checks if predicted location of template in image is within x pixels of the true position (if not then its likely the dome is open)
         if (max_loc[0] > limsx[j][0]) & (max_loc[0] < limsx[j][1]):
@@ -94,10 +96,12 @@ for i in img_info[0:5]:
         else:
             results.append(False)
 
+
     if (results[0] or results[1]) == True:
-        result = "Open"
+        result = "Closed"
     else:
-        dome = "Closed"
+        result = "Open"
+
 
     #construct dict of these values to be turned into JSON
     values = {"time":tnowdt,
@@ -105,7 +109,8 @@ for i in img_info[0:5]:
               "period of the day":mode,
               "sun":{"altitude":round(alt.degrees,7)},
               "moon":{"altitude":round(malt.degrees,7),"phase":round(mphase,7),"illumination":round(mill,7)},
-              "dome-status": result
+              "dome-status": result,
+              "image":{"name":i[-26:],"exposure time":image["exposure_time"], "width":image["image_width"], "height":image["image_height"]}
              }
 
     #saves json
