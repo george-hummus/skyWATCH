@@ -108,9 +108,6 @@ def dome_detect(fname):
     img = np.invert(cv.equalizeHist(img)).clip(min=150)
     #histogram flattener normalises the brightness of the images
 
-    img2 = img.copy()
-
-    img = img2.copy()
     method = eval('cv.TM_CCOEFF')
 
     results = []
@@ -139,6 +136,9 @@ def dome_detect(fname):
 
 ## Inialising Camera ##
 camera = PiCamera()
+#using full resolution of pi hq-camera - otherwise template match doesn't work
+camera.resolution = (4056, 3040) #rasppi zero needed 200mb of gpu memory for this
+camera.framerate = 15
 
 ## OPERATION LOOP ##
 while True:

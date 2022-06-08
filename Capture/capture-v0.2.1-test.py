@@ -139,6 +139,9 @@ def dome_detect(fname):
 
 ## Inialising Camera ##
 camera = PiCamera()
+#using full resolution of pi hq-camera - otherwise template match doesn't work
+camera.resolution = (4056, 3040)
+camera.framerate = 15
 
 ## start time to speed up testing ##
 startT = dt.datetime(2022,6,3,20,0,0,tzinfo=utc)
