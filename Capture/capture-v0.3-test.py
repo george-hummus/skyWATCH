@@ -1,6 +1,6 @@
 '''
 TEST VERSION
-Version 0.2.1 of the new capture script for the skyWATCH camera.
+Version 0.3 of the new capture script for the skyWATCH camera.
 What it does:
 - calculates whether it should open depending on the time of day
 - if in day time mode:
@@ -16,6 +16,8 @@ What it does:
     - detects if the dome is open (if it is sleeps for 15 mins before enxt exposure)
     - saves all info to JSON file with same name as image and in same directory
     - has a mode for dome open and closed (constantly takes an image when dome is closed to check if it has reopened, but this image is overwitten each time)
+- creates a log for the night where it notes down key info
+- at the end of the night it converts the images into a timeplase mp4
 
 To-do:
 - change the exposure time on the fly with each new image for best all-sky image
@@ -38,7 +40,7 @@ import numpy as np
 from tqdm import tqdm
 from exif import Image
 import os
-from picamera import PiCamera
+#from picamera import PiCamera
 
 ## SETUP ##
 if len(glob.glob("setup.json")) == 0: #if no setup file then you'll be prompted to create one
@@ -137,11 +139,30 @@ def dome_detect(fname):
 
     return domestatus
 
+def timeplase(images):
+    #makes timeplase from images taken during the night
+    img_array=[]
+    for fname in images:
+        img = cv.imread(fname)
+        height, width, layers = img.shape
+        size = (width,height)
+        img_array.append(img)
+
+    out = cv.VideoWriter(f'{path}/timelapse-{datenow}_{devname}.mp4',
+                          cv.VideoWriter_fourcc(*'mp4v'), 5, size)
+
+    for im in img_array:
+        out.write(im)
+    out.release()
+
+    img_array=[] #clears the image array from memory
+
+
 ## Inialising Camera ##
-camera = PiCamera()
+#camera = PiCamera()
 #using full resolution of pi hq-camera - otherwise template match doesn't work
-camera.resolution = (4056, 3040)
-camera.framerate = 15
+#camera.resolution = (4056, 3040)
+#camera.framerate = 15
 
 ## start time to speed up testing ##
 startT = dt.datetime(2022,6,3,20,0,0,tzinfo=utc)
@@ -156,10 +177,10 @@ while True:
     ## DAY-TIME MODE ##
     while active == False: #loop to check the time of day
         #tnow = ts.now() #saves time now
-
+        print(i)
         print("day")
-        tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*30)) ##
-        i+=1 #increases time by 30mins with each cycle - only for testing
+        tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*10)) ##
+        i+=1 #increases time by 10mins with each cycle - only for testing
         print(tnow.utc_strftime("%Y-%m-%d %H:%M:%S"))
         alt = sun_alt(tnow)
         if alt < 5:
@@ -168,13 +189,16 @@ while True:
             path = f"out/{datenow}"
             os.mkdir(path) #makes directory for images on new night
             #log
-            log = open(f"{path}/log-{datenow}.txt", "w")
-            log.write(f"LOG FOR THE NIGHT OF {datenow} CREATED @ {timestr}\n")
+            log = open(f"{path}/log-{datenow}_{devname}.txt", "w")
+            log.write(f"LOG FOR THE NIGHT OF {datenow[6:]}/{datenow[4:6]}/{datenow[0:4]} CREATED @ {timestr}\n")
             log.write(f"Altitude of sun: {alt} \n")
 
-            camera.start_preview() #starts the camera
+            #camera.start_preview() #starts the camera
             log.write("Camera started\n\n")
             time.sleep(2)
+
+            img_list = [] #creates a list of the images captured during the night, used to construct the timeplase
+
             active = True #sets active status to True is altitude of sun is below 5 degs
         else:
             time.sleep(10) #checks every 10seconds if it is nighttime
@@ -187,10 +211,10 @@ while True:
         while domestatus == False:
             #need the time first
             #tnow = ts.now() #saves time now
-
+            print(i)
             print("open")
-            tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*30)) ##
-            i+=1 #increases time by 30mins with each cycle - only for testing
+            tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*10)) ##
+            i+=1 #increases time by 10mins with each cycle - only for testing
 
             tnowstr = tnow.utc_strftime("%Y-%m-%d %H:%M:%S") #string version
             tnowfn = tnow.utc_strftime("%Y%m%d_%H%M%S") #filename version
@@ -198,8 +222,10 @@ while True:
 
             #capture image
             img_name = f"{tnowfn}_{devname}.jpg"
-            camera.capture(f"{path}/{img_name}")
+            #camera.capture(f"{path}/{img_name}")
+            #img_list.append(f"{path}/{img_name}") #appends path to image to list of images
             test_name = test_imgs[i%2]
+            img_list.append(test_name) #for testing only
             log.write(f"Image {img_name} captured @ {timestr}\n")
 
             alt = sun_alt(tnow)
@@ -210,8 +236,12 @@ while True:
             #checks if it is nighttime otherwise go to day-time mode
             if alt > 5:
                 active = False #sets active status to False if altitude of sun is above 5 degs
-                camera.stop_preview() #stops camera
-                log.write(f"\n END OF NIGHT \n")
+                #camera.stop_preview() #stops camera
+                log.write("\n")
+                timeplase(img_list) #creates the timeplase for the night
+                log.write(f"Timelapse saved as timelapse-{datenow}_{devname}.mp4\n")
+                print("saved timelapse")
+                log.write(f"\n NIGHT ended @ {timestr}\n")
                 log.close()
                 break
 
@@ -248,16 +278,16 @@ while True:
             #saves json
             with open(f'{path}/{img_name[:-4]}.json', 'w') as fp:
                 json.dump(values, fp,indent=4)
-            log.write(f"JSON file saved \n\n")
+            log.write(f"JSON file saved as: {img_name[:-4]}.json\n\n")
 
 
         ## DOME CLOSED MODE ##
         while domestatus == True:
             #tnow = ts.now() #saves time now
-
+            print(i)
             print("closed")
-            tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*30)) ##
-            i+=1 #increases time by 30mins with each cycle - only for testing
+            tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*10)) ##
+            i+=1 #increases time by 10mins with each cycle - only for testing
             #checks if it is nighttime otherwise go to day-time mode
             print(tnow.utc_strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -268,15 +298,21 @@ while True:
             print(alt)
             if alt > 5:
                 active = False #sets active status to False if altitude of sun is above 5 degs
-                camera.stop_preview() #stops camera
-                log.write(f"\n END OF NIGHT \n")
+                #camera.stop_preview() #stops camera
+                log.write("\n")
+                timeplase(img_list) #creates the timeplase for the night
+                print("saved timelapse")
+                log.write(f"Timelapse saved as: timelapse-{datenow}_{devname}.mp4\n")
+                log.write(f"NIGHT ended @ {timestr}\n")
                 log.close()
                 break
 
             #when dome is close image is taken continually until it seems that dome has reopened
             img_name = ".glance.jpg" #same name so glance is always overwritten
-            camera.capture(f"{path}/{img_name}")
+            #camera.capture(f"{path}/{img_name}")
             test_name = test_imgs[(i%2)-1]
+
+            img_list.append("placeholder.jpg") #apends placeholder to timeplase sequence
 
             ## DETECT IF DOME IS OPEN OR CLOSED ##
             domestatus = dome_detect(test_name)
