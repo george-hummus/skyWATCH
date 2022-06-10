@@ -144,6 +144,7 @@ def timeplase(images):
     img_array=[]
     for fname in images:
         img = cv.imread(fname)
+        img = cv.resize(img, [825,640])#resize to 480p with same aspect ratio so pi-zero can cope
         height, width, layers = img.shape
         size = (width,height)
         img_array.append(img)
