@@ -144,8 +144,8 @@ def capture(fname,exptime):
     #low res glance
     width, height = 825, 640
     def command(width,height,exptime,imname):
-    	cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {exptime} -st -o {imname}"
-    	return cmd
+        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {exptime} -st -o {imname}"
+        return cmd
 
     cmd = command(width,height,exptime,imname)
 
@@ -161,15 +161,17 @@ def capture(fname,exptime):
     width,height = 4065, 3040 #back to full resolution
 
     if (median>LB) & (median<UB): #if within bounds captures image at same exp-time
-    	cmd = command(width,height,exptime,fname)
-    	subprocess.call(cmd,shell=True) #take highres image
+        cmd = command(width,height,exptime,fname)
+        subprocess.call(cmd,shell=True) #take highres image
     else: #if median is not within this range
-    	diff = (128/median)**1.6 #assumes x^1.6 response curve of camera sensor
-    	exptime = exptime*diff
+        diff = (128/median)**1.6 #assumes x^1.6 response curve of camera sensor
+        exptime = exptime*diff
         if exptime > 230000000: #max exptime of pi hq camera is 230s
             exptime = 230000000
-    	cmd = command(width,height,exptime,fname)
-    	subprocess.call(cmd,shell=True) #take highres image at new exp-time
+        else:
+            exptime=exptime
+        cmd = command(width,height,exptime,fname)
+        subprocess.call(cmd,shell=True) #take highres image at new exp-time
 
     return exptime
 
