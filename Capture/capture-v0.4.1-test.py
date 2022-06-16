@@ -1,4 +1,5 @@
 '''
+TEST VERSION
 Version 0.4 of the new capture script for the skyWATCH camera.
 What it does:
 - calculates whether it should open depending on the time of day
@@ -40,6 +41,8 @@ import numpy as np
 from exif import Image
 import os
 import subprocess
+from datetime import datetime as dt
+from tqdm import tqdm
 
 ## SETUP ##
 if len(glob.glob("setup.json")) == 0: #if no setup file then you'll be prompted to create one
@@ -139,19 +142,20 @@ def dome_detect(fname):
     return domestatus
 
 def capture(fname,exptime):
+    '''
     imname = ".glance.jpg"
 
     #low res glance
     width, height = 825, 640
     def command(width,height,exptime,imname):
-        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {exptime} -st -o {imname}"
-        return cmd
+        #cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {exptime} -st -o {imname}"
+        #return cmd
 
     cmd = command(width,height,exptime,imname)
 
     subprocess.call(cmd,shell=True)
 
-    #read in glance as array of pixel values
+    read in glance as array of pixel values
     flat = cv.imread(".glance.jpg",0).flatten()
 
     LB = 96 #lower bound of median counts
@@ -159,10 +163,18 @@ def capture(fname,exptime):
     median = np.median(flat)
 
     width,height = 4065, 3040 #back to full resolution
+    '''
+
+    #for testing
+    flat = cv.imread(fname,0).flatten()
+    LB = 96 #lower bound of median counts
+    UB = 160 #upper bound of median counts
+    median = np.median(flat)
 
     if (median>LB) & (median<UB): #if within bounds captures image at same exp-time
-        cmd = command(width,height,exptime,fname)
-        subprocess.call(cmd,shell=True) #take highres image
+        #cmd = command(width,height,exptime,fname)
+        #subprocess.call(cmd,shell=True) #take highres image
+        exptime=exptime
     else: #if median is not within this range
         diff = (128/median)**1.6 #assumes x^1.6 response curve of camera sensor
         exptime = exptime*diff
@@ -170,8 +182,8 @@ def capture(fname,exptime):
             exptime = 230000000
         else:
             exptime=exptime
-        cmd = command(width,height,exptime,fname)
-        subprocess.call(cmd,shell=True) #take highres image at new exp-time
+        #cmd = command(width,height,exptime,fname)
+        #subprocess.call(cmd,shell=True) #take highres image at new exp-time
 
     return exptime
 
@@ -199,14 +211,37 @@ def logger(logname,string):
     with open(logname, 'a') as f:
         f.write(string)
 
-exptime = 500000 #inital exp time is 1/2 second
+#exptime = 500000 #inital exp time is 1/2 second
 
+##for testing##
+imagens = np.loadtxt("/media/george/Work/skyWATCH/20220407/images.list",dtype=str)
+imlist = []
+for k in imagens:
+    imlist.append("/media/george/Work/skyWATCH/20220407/"+k)
+times = [] #list of times
+exptimes = [] #list of exposure times
+print("loding in image info")
+for i in tqdm(imlist):
+    with open(i, "rb") as photo:
+        meta = Image(photo)
+    exptimes.append(meta["exposure_time"])
+    T = dt.strptime(meta["datetime"], '%Y:%m:%d %H:%M:%S') #convert string to datetime object
+    times.append(T.replace(tzinfo=utc))
+
+meta = [] #wipes meta from memory
+
+print("setup done")
 ## OPERATION LOOP ##
-while True:
+for j in range(len(times)):
 
     ## DAY-TIME MODE ##
-    while active == False: #loop to check the time of day
-        tnow = ts.now() #saves time now
+    if active == False: #loop to check the time of day
+        #tnow = ts.now() #saves time now
+
+        print(j)
+        print("day")
+        tnow=ts.from_datetime(times[j])
+        print(tnow.utc_strftime("%Y-%m-%d %H:%M:%S"))
 
         alt = sun_alt(tnow)
         if alt < 5:
@@ -223,27 +258,45 @@ while True:
 
             active = True #sets active status to True is altitude of sun is below 5 degs
         else:
-            time.sleep(10) #checks every 10seconds if it is nighttime
+            time.sleep(1) #checks every 10seconds if it is nighttime
 
 
     ## NIGHT-TIME MODE ##
-    while active == True:
+    if active == True:
+
+        #need the time first
+        #tnow = ts.now() #saves time now
+        print(j)
+        print("night")
+        tnow=ts.from_datetime(times[j])
+        print(tnow.utc_strftime("%Y-%m-%d %H:%M:%S"))
+
+        tnowstr = tnow.utc_strftime("%Y-%m-%d %H:%M:%S") #string version
+        tnowfn = tnow.utc_strftime("%Y%m%d_%H%M%S") #filename version
+        timestr = tnow.utc_strftime("%H:%M:%S")
+
+        #capture image
+        img_name = f"{tnowfn}_{devname}.jpg"
+        est_et = capture(imlist[j],exptimes[j])
+        img_list.append(f"{path}/{img_name}") #appends path to image to list of images
+        logger(f"{path}/images.list",f"{path}/{img_name}\n") #appends path to image to file of list of images
+        logger(logname,f"Image {img_name} captured @ {timestr}\n")
+        logger(logname,f"real exp time: {exptimes[j]}s\n estimated exptime: {est_et}s\n")
+
+
+        ## DETECT IF DOME IS OPEN OR CLOSED ##
+        domestatus = dome_detect(imlist[j])
+        if domestatus == True:
+            result = "Closed"
+        else:
+            result = "Open"
+
+        print(result)
+
+        logger(logname,f"Dome is {result} \n")
 
         ## DOME OPEN MODE ##
-        while domestatus == False:
-            #need the time first
-            tnow = ts.now() #saves time now
-
-            tnowstr = tnow.utc_strftime("%Y-%m-%d %H:%M:%S") #string version
-            tnowfn = tnow.utc_strftime("%Y%m%d_%H%M%S") #filename version
-            timestr = tnow.utc_strftime("%H:%M:%S")
-
-            #capture image
-            img_name = f"{tnowfn}_{devname}.jpg"
-            exptime = capture(f"{path}/{img_name}",exptime)
-            img_list.append(f"{path}/{img_name}") #appends path to image to list of images
-            logger(f"{path}/images.list",f"{path}/{img_name}\n") #appends path to image to file of list of images
-            logger(logname,f"Image {img_name} captured @ {timestr}\n")
+        if domestatus == False:
 
             alt = sun_alt(tnow)
             logger(logname,f"Altitude of sun: {alt} \n")
@@ -251,8 +304,6 @@ while True:
             #checks if it is nighttime otherwise go to day-time mode
             if alt > 5:
                 active = False #sets active status to False if altitude of sun is above 5 degs
-                timeplase(img_list) #creates the timeplase for the night
-                logger(logname,f"\nTimelapse saved as timelapse-{datenow}_{devname}.mp4\n")
                 logger(logname,f"\n NIGHT ended @ {timestr}\n")
                 break
 
@@ -264,18 +315,8 @@ while True:
             malt, mphase, mill = moon_props(tnow)
 
             #read image metadata
-            with open(f"{path}/{img_name}", "rb") as photo:
+            with open(imlist[j], "rb") as photo:
                 meta = Image(photo)
-
-            ## DETECT IF DOME IS OPEN OR CLOSED ##
-            domestatus = dome_detect(f"{path}/{img_name}")
-            if domestatus == True:
-                dometime = exptime #sets exposure time for dome exposure to exposure time
-                result = "Closed"
-            else:
-                result = "Open"
-
-            logger(logname,f"Dome is {result} \n")
 
 
             #construct dict of these values to be turned into JSON
@@ -292,31 +333,26 @@ while True:
                 json.dump(values, fp,indent=4)
             logger(logname,f"JSON file saved as: {img_name[:-4]}.json\n\n")
 
-            time.sleep(60) #at least 1min between expsoures
+            #time.sleep(60) #at least 1min between expsoures
 
 
         ## DOME CLOSED MODE ##
-        while domestatus == True:
-            tnow = ts.now() #saves time now
+        else:
+            logger(logname,"\n")
+            dometime = exptimes[j] #sets exposure time for dome exposure to exposure time
+            print(i)
+            print("dome closed")
             img_list.append("placeholder.jpg") #apends placeholder to timeplase sequence
             logger(f"{path}/images.list","placeholder.jpg\n") #appends path to placeholder to file with list of images
 
             timestr = tnow.utc_strftime("%H:%M:%S")
-            logger(logname,f"Checking dome status @ {timestr} \n")
+            print(timestr)
 
             alt = sun_alt(tnow)
             if alt > 5:
                 active = False #sets active status to False if altitude of sun is above 5 degs
-                timeplase(img_list) #creates the timeplase for the night
-                logger(logname,f"\nTimelapse saved as: timelapse-{datenow}_{devname}.mp4\n")
                 logger(logname,f"NIGHT ended @ {timestr}\n")
                 break
 
-            #when dome is close image is taken continually until it seems that dome has reopened
-            img_name = ".glance.jpg" #same name so glance is always overwritten
-            dometime = capture(f"{path}/{img_name}",dometime) #use a different exposure time for dome exposures so that we retain the old exposure time for when/if the dome reopens.
-
-            ## DETECT IF DOME IS OPEN OR CLOSED ##
-            domestatus = dome_detect(test_name)
-            logger(logname,f"Has the dome remained closed? {domestatus} \n\n")
-            time.sleep(60) #1min between checks
+timeplase(imlist) #creates the timeplase for the night
+logger(logname,f"\nTimelapse saved as timelapse-{datenow}_{devname}.mp4\n")
