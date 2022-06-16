@@ -1,5 +1,5 @@
 '''
-Version 0.4 of the new capture script for the skyWATCH camera.
+Version 0.4.1 of the new capture script for the skyWATCH camera.
 What it does:
 - calculates whether it should open depending on the time of day
 - if in day time mode:
