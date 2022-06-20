@@ -65,16 +65,10 @@ def sun_check(Epos,t,sun):
 
 ##############################################################################################################
 
-def startup(t):
+def startup(t,devname):
     ### Start up function for when switch to night mode
     ## Creates new directory to save images to, creates the log and the image list
     # t is the current time
-
-    #global varibles
-    global path
-    global logname
-    global img_list
-    global datenow
 
     # strings for current date and time
     datenow = t.utc_strftime("%Y%m%d")
@@ -86,10 +80,11 @@ def startup(t):
 
     #creates the night log
     logname = f"{path}/log-{datenow}_{devname}.log"
-    logger(logname,f"LOG FOR THE NIGHT OF {datenow[6:]}/{datenow[4:6]}/{datenow[0:4]} CREATED @ {timestr}\n")
-    logger(logname,f"Altitude of sun: {alt} \n")
+    logger(logname,f"LOG FOR THE NIGHT OF {datenow[6:]}/{datenow[4:6]}/{datenow[0:4]} CREATED @ {timestr}\n\n")
 
     img_list = [] #creates a list of the images captured during the night, used to construct the timeplase
+
+    return path,logname,img_list,datenow
 
 ##############################################################################################################
 
@@ -140,15 +135,15 @@ def capture(fname,etime,res=[4065, 3040]):
 
 
     #function to use subprocess to capture image with raspistill
-    def command(width,height,etime,imname):
-        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {exptime} -st -o {imname}"
+    def command(width,height,et,imname):
+        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {et} -st -o {imname}"
         return cmd
 
 
     # low res glance used to estimate exp time needed #
     width, height = 825, 640
     imname = ".glance.jpg"
-    cmd = command(width,height,exptime,imname)
+    cmd = command(width,height,etime,imname)
     subprocess.call(cmd,shell=True)
 
 
@@ -163,7 +158,7 @@ def capture(fname,etime,res=[4065, 3040]):
         exptime=etime #if within bounds captures image at same exp-time
     else: #if median is not within this range
         diff = (128/median)**1.6 #assumes x^1.6 response curve of camera sensor
-        exptime = exptime*diff
+        exptime = etime*diff
         if exptime > 230000000: #max exptime of pi hq camera is 230s
             exptime = 230000000
         else:
@@ -181,6 +176,32 @@ def capture(fname,etime,res=[4065, 3040]):
 
 ##############################################################################################################
 
+def captest(fname,etime):
+    ### Capture function for testing mode; so doesn't use raspistill to capture images
+    ## fname is the path to where the test image, etime is the exposure time for the glance - from this the neccessary exposure time will be estimated.
+
+    # estimate neccessary expsoure time #
+    flat = cv.imread(fname,0).flatten() #read in glance as 1d array of pixel values
+    median = np.median(flat) #median of the pixel counts of the glance
+
+    #upper and lower bound the median should be within
+    LB = 96
+    UB = 160
+    if (median>LB) & (median<UB):
+        exptime=etime #if within bounds captures image at same exp-time
+    else: #if median is not within this range
+        diff = (128/median)**1.6 #assumes x^1.6 response curve of camera sensor
+        exptime = etime*diff
+        if exptime > 230000000: #max exptime of pi hq camera is 230s
+            exptime = 230000000
+        else:
+            exptime=exptime
+
+    return exptime
+
+
+##############################################################################################################
+
 def SnM(Epos,t,eph):
     ### Finds the alitude of the sun, moon's alt, phase, and illumination, and the time of day
     ## Epos is location of device; t is the time; eph is the ephemerides file
@@ -191,6 +212,7 @@ def SnM(Epos,t,eph):
     astro = Epos.at(t).observe(sun)
     app = astro.apparent()
     alt, az, distance = app.altaz()
+    alt = alt.degrees
 
 
     # infers time of day from alitude of the sun #
@@ -215,7 +237,7 @@ def SnM(Epos,t,eph):
 
 
     # returns all the varibles as a list
-    return [alt.degrees, mode , [malt.degrees,mphase.degrees,mill]]
+    return [alt, mode , [malt.degrees,mphase.degrees,mill]]
 
 ##############################################################################################################
 
@@ -247,5 +269,31 @@ def im_json(fname,t,skyprops,iprops,devprops,path):
 
 
     # saves the dictonary as a JSON #
-    with open(f'{path}/{img_name[:-4]}.json', 'w') as fp:
+    with open(f'{path}/{fname[:-4]}.json', 'w') as fp:
         json.dump(values, fp,indent=4)
+
+##############################################################################################################
+
+def timelapse(images,path):
+    ### makes timeplase from images taken during the night
+    ## images is a list of paths to the images saved during the night (in chronological order), path is the path to which the timelapse will be saved to
+
+    img_array=[] #empty list to save with image arrays
+
+    for fname in images:
+        img = cv.imread(fname)
+        img = cv.resize(img, [825,640])#resize to 480p with same aspect ratio so pi-zero can cope
+        height, width, layers = img.shape
+        size = (width,height)
+        img_array.append(img)
+
+    out = cv.VideoWriter(path, cv.VideoWriter_fourcc(*'mp4v'), 5, size)
+
+    for im in img_array:
+        out.write(im)
+
+    out.release() #saves the timelapse
+
+    img_array=[] #clears the image array from memory
+
+##############################################################################################################

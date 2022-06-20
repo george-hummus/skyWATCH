@@ -1,4 +1,5 @@
 '''
+TEST VERSION
 Version 0.5 of the new capture script for the skyWATCH camera - significantly re-written.
 What it does:
 - calculates whether it should open depending on the time of day
@@ -31,6 +32,7 @@ Author: George Hume
 ## IMPORTS ##
 from skyfield.api import N,E, wgs84, load
 import time
+import datetime as dt
 from Cfunctions import *
 
 ### SETUP ###
@@ -54,6 +56,10 @@ exptime = 500000 #inital exp time - starts at 0.5s (units are ns)
 templims = [[[122,172],[520,570]],[[107,157],[28,78]]] #limits for the template matching
 templates = ['dome-templates/hflr-template1.jpg', 'dome-templates/hflr-template2.jpg'] #paths to templates
 
+## start time to speed up testing ##
+startT = dt.datetime(2022,6,3,20,0,0,tzinfo=utc)
+i=0
+test_imgs = ["test.jpg","dome.jpg"]
 
 ### OPERATIONAL LOOP ###
 while True:
@@ -61,40 +67,50 @@ while True:
 
     ## DAY TIME MODE ##
     while active == False:
+        print(i)
+        print("daytime")
         # check the time to see if sun is less than 1deg above horizon #
-        tnow = ts.now() #saves time now
-
+        #tnow = ts.now() #saves time now
+        tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*10))
         active = sun_check(Epos,tnow,sun)
         if active == True:
             path,logname,imlist,datenow = startup(tnow,devname)
+            i+=1
             break
         else:
             time.sleep(10) #checks sun's altitude every min
+            i+=1
 
 
     ## NIGHT TIME MODE ##
     while active == True:
+        print(i)
+        print("night time")
         # check the time to see if sun is less than 1deg above horizon #
-        tnow = ts.now() #saves time now
+        #tnow = ts.now() #saves time now
+        tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*10))
         active = sun_check(Epos,tnow,sun)
 
         # convert time into stings #
         timestr = tnow.utc_strftime("%H:%M:%S")
         logger(logname,f"Time: {timestr}\n")
+        print(timestr)
 
         if active == False:
             timelapse(imlist,f'{path}/timelapse-{datenow}_{devname}.mp4')
             logger(logname,f"Timelapse movie saved as: timelapse-{datenow}_{devname}.mp4\n")
-
+            print("movie saved")
             logger(logname,"\nNIGHT END\n")
             break
         else:
             # low resolution glance #
-            img_path = ".glance.jpg"
-            temp_exptime = capture(img_path,exptime,res=[825,640]) #temp exp time, will be made offical if dome is open
+            #img_path = ".glance.jpg"
+            #temp_exptime = capture(img_path,exptime,res=[825,640]) #temp exp time, will be made offical if dome is open
+            img_path = test_imgs[int(i/2)%2]
+            temp_exptime = captest(img_path,exptime)
 
             # check the status of the dome using glance #
-            domestatus = dome_detect(img_path,templates,templims)
+            domestatus = dome_detect(f"lr-{img_path}",templates,templims)
 
 
         # OPEN DOME MODE #
@@ -105,16 +121,20 @@ while True:
 
 
             # call for current time again #
-            tnow = ts.now()
+            #tnow = ts.now()
+            tnow=ts.from_datetime(startT+dt.timedelta(minutes=i*10))
             tnowstr = tnow.utc_strftime("%Y-%m-%d %H:%M:%S") #string version
             tnowfn = tnow.utc_strftime("%Y%m%d_%H%M%S") #filename version
             timestr = tnow.utc_strftime("%H:%M:%S")
 
 
             # capture full resolution image #
+            #img_name = f"{tnowfn}_{devname}.jpg"
+            #img_path = f"{path}/{img_name}"
+            #exptime = capture(img_path,exptime)
             img_name = f"{tnowfn}_{devname}.jpg"
-            img_path = f"{path}/{img_name}"
-            exptime = capture(img_path,exptime)
+            img_path = test_imgs[int(i/2)%2]
+            exptime = captest(img_path,exptime)
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
 
             imlist.append(img_path) #appends path to image to list of images
@@ -130,11 +150,10 @@ while True:
             im_json(img_name,timestr,skyprops,improps,prams,path)
             logger(logname,f"JSON saved as {img_name[0:-4]}.json\n")
 
-
             # add blank line to night log
             logger(logname,"\n")
             # 60 delay between captures
-            time.sleep(60)
+            #time.sleep(60)
 
 
         # CLOSED DOME MODE #
@@ -147,4 +166,6 @@ while True:
             logger(f"{path}/images.list","placeholder.jpg\n")
 
             # delay #
-            time.sleep(60)
+            #time.sleep(60)
+
+        i+=1
