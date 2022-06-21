@@ -274,18 +274,19 @@ def im_json(fname,t,skyprops,iprops,devprops,path):
 
 ##############################################################################################################
 
-def timelapse(images,path):
+def timelapse(images,path,res=[825,640]):
     ### makes timeplase from images taken during the night
-    ## images is a list of paths to the images saved during the night (in chronological order), path is the path to which the timelapse will be saved to
+    ## images is a list of paths to the images saved during the night (in chronological order), path is the path to which the timelapse will be saved to, res is the resolution of the final video (default is 480p 4:3)
 
     img_array=[] #empty list to save with image arrays
 
     for fname in images:
-        img = cv.imread(fname)
-        img = cv.resize(img, [825,640])#resize to 480p with same aspect ratio so pi-zero can cope
-        height, width, layers = img.shape
-        size = (width,height)
-        img_array.append(img)
+        if len(glob.glob(fname)) != 0: #makes sure the image is present in the directory
+            img = cv.imread(fname)
+            img = cv.resize(img, res)#resize to 480p with same aspect ratio so pi-zero can cope
+            height, width, layers = img.shape
+            size = (width,height)
+            img_array.append(img)
 
     out = cv.VideoWriter(path, cv.VideoWriter_fourcc(*'mp4v'), 5, size)
 

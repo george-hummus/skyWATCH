@@ -23,6 +23,7 @@ To-do:
 - automate the creation of the placeholder image used in timelpase when dome is closed
 - make option to load in your own templates for the dome detect (or it could make ones for you?)
 - make version for the new pi-cam api
+- include the temperature sensor readings
 
 Author: George Hume
 2022
@@ -83,6 +84,7 @@ while True:
         logger(logname,f"Time: {timestr}\n")
 
         if active == False:
+            logger(logname,f"Ending captures for the night and creating timelapse.\n")
             timelapse(imlist,f'{path}/timelapse-{datenow}_{devname}.mp4')
             logger(logname,f"Timelapse movie saved as: timelapse-{datenow}_{devname}.mp4\n")
 
