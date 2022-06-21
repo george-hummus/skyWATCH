@@ -33,6 +33,7 @@ Author: George Hume
 from skyfield.api import N,E, wgs84, load
 import time
 from Cfunctions import *
+import gc
 
 ### SETUP ###
 prams = setup() #loads in setup json containing the paramters for the device and its location
@@ -150,6 +151,8 @@ while True:
 
                 # delay #
                 time.sleep(60)
+
+            gc.collect() #garbage collection at end of each cycle to free up memory
 
     except Exception as Argument:
         logger("errors.log",str(Argument)) #logs any errors
