@@ -298,3 +298,94 @@ def timelapse(images,path,res=[825,640]):
     img_array=[] #clears the image array from memory
 
 ##############################################################################################################
+
+# function to construct the whole thing
+def placeholder(dev, loc, t, opath):
+    ''' produces an automated placeholder image for given;
+    device name (less than 16 charcaters) - dev,
+    location name (less than 16 charcaters) - loc,
+    and UTC time (in format HH:MM:SS) - t.
+    Saves to path and file name given by opath argument.
+        Note, only accepts alphanumeric characters and colons,
+        any other charcters will be replaced with unknown charcter symbol.
+    '''
+
+    #loads in dict with the arrays corresponding to the letters
+    letsnums=np.load("chars.npy",allow_pickle=True).item()
+    #spacing tiles
+    blanktile = np.zeros([20,10])
+    halfblank = np.zeros([20,5])
+
+
+    #placeholder image is 240x180 split into 24 columns and 9 rows
+
+    #cuts down the names if they are too long
+    dev=dev[0:16]
+    loc=loc[0:14]
+
+    #text for each line of the image lines 0,1,7 & 8 are blank lines
+    line2str = "skywatch"
+    line3str = "dome is closed"
+    line4str = f"time: {t} utc"
+    line5str = f"device: {dev.lower()}" #makes lower case to match dict keys
+    line6str = f"location: {loc.lower()}"
+
+    #making the blank lines for lines 0,1,7 & 8
+    emptyline = []
+    for i in range(24):
+        emptyline.append(blanktile)
+    emptyline = np.concatenate(emptyline,axis=1)
+
+    def makeline(string):
+        #function that makes a string into a line in the image whihc is centred
+
+        # uses dict of letters corresponding to arrays representing them 2 make the line
+        phrase = [] #empty line
+        for j in string:
+            if j == " ":
+                phrase.append(blanktile) #insert blank tile if there is space in string
+            else:
+                try: #looks for corresponding array for the character
+                    phrase.append(letsnums[j])
+                except: #if can't find charcater in dict replaces it with unknown char
+                    phrase.append(letsnums["unknown"])
+
+        phrase = np.concatenate(phrase,axis=1) #concatenates the line into a 2d array
+
+        spacing=(24-len(string))/2
+        #calculates spacing needed at each side for centred string in image
+
+        if spacing > 0: #if zero the max length is reached
+            if (spacing%1 != 0):
+                space = [halfblank]
+                #if odd number of space left need half tiles needed to centre string
+            else:
+                space = []
+
+            for i in range(int(spacing)):
+                space.append(blanktile)#appends blank tile for the number of spacing
+            space = np.concatenate(space,axis=1)#convert to long 2d array
+
+            line = np.concatenate((space,phrase,space),axis=1) #adds the spacing to str
+
+        else:
+            line = phrase #if no spacing then dont need to add any
+
+        return line
+
+    #uses above function to convert strings to line in images
+    line2 = makeline(line2str)
+    line3 = makeline(line3str)
+    line4 = makeline(line4str)
+    line5 = makeline(line5str)
+    line6 = makeline(line6str)
+
+    imagelist = [emptyline,emptyline,
+                 line2,line3,line4,line5
+                 ,line6,emptyline,emptyline] #images as list line by line
+
+    placeholder = np.concatenate(imagelist,axis=0) #image as whole array
+
+    cv.imwrite(opath,placeholder)
+
+##############################################################################################################
