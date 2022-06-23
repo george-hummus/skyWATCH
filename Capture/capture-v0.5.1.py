@@ -1,5 +1,5 @@
 '''
-Version 0.5 of the new capture script for the skyWATCH camera - significantly re-written.
+Version 0.5.1 of the new capture script for the skyWATCH camera - significantly re-written.
 What it does:
 - calculates whether it should open depending on the time of day
 - if in day time mode:
@@ -18,6 +18,9 @@ What it does:
     - at the end of the night it converts the images into a timeplase mp4
     - changes the exposure time on the fly with each new image for best all-sky image
     - need to account for dome closing when automating the exposure time
+    - clears memory after each night capture to reduce the load on the raspberry pi zero
+- records any errors it may ecounter in a log
+
 
 To-do:
 - automate the creation of the placeholder image used in timelpase when dome is closed

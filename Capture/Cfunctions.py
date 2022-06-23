@@ -5,7 +5,6 @@ Author: George Hume
 2022
 '''
 ### IMPORTS ###
-from skyfield.api import utc
 from skyfield import almanac
 import json
 import glob
