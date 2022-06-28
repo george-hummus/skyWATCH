@@ -149,6 +149,8 @@ def capture(fname,etime,res=[4065, 3040]):
     # estimate neccessary expsoure time #
     flat = cv.imread(".glance.jpg",0).flatten() #read in glance as 1d array of pixel values
     median = np.median(flat) #median of the pixel counts of the glance
+    if median == 0:
+        median = 1 #to avoid divide by zero errors
 
     #upper and lower bound the median should be within
     LB = 96
@@ -156,7 +158,7 @@ def capture(fname,etime,res=[4065, 3040]):
     if (median>LB) & (median<UB):
         exptime=etime #if within bounds captures image at same exp-time
     else: #if median is not within this range
-        diff = (128/median)**1.6 #assumes x^1.6 response curve of camera sensor
+        diff = (128/(median))**1.6 #assumes x^1.6 response curve of camera sensor
         exptime = etime*diff
         if exptime > 230000000: #max exptime of pi hq camera is 230s
             exptime = 230000000
