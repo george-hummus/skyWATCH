@@ -79,7 +79,7 @@ def startup(t,devname):
 
     #creates the night log
     logname = f"{path}/log-{datenow}_{devname}.log"
-    logger(logname,f"LOG FOR THE NIGHT OF {datenow[6:]}/{datenow[4:6]}/{datenow[0:4]} CREATED @ {timestr}\n\n")
+    logger(logname,f"LOG FOR THE NIGHT OF {datenow[6:]}/{datenow[4:6]}/{datenow[0:4]} CREATED @ {timestr}\n")
 
     img_list = [] #creates a list of the images captured during the night, used to construct the timeplase
 
