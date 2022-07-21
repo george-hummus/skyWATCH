@@ -135,6 +135,55 @@ def capture(fname,etime,res=[4065, 3040]):
 
     #function to use subprocess to capture image with raspistill
     def command(width,height,et,imname):
+        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ss {et} -st -o {imname} -awb greyworld"
+        return cmd
+
+
+    # low res glance used to estimate exp time needed #
+    width, height = 825, 640
+    imname = ".glance.jpg"
+    cmd = command(width,height,etime,imname)
+    subprocess.call(cmd,shell=True)
+
+
+    # estimate neccessary expsoure time #
+    flat = cv.imread(".glance.jpg",0).flatten() #read in glance as 1d array of pixel values
+    median = np.median(flat) #median of the pixel counts of the glance
+    if median == 0:
+        median = 1 #to avoid divide by zero errors
+
+    #upper and lower bound the median should be within
+    LB = 96
+    UB = 160
+    if (median>LB) & (median<UB):
+        exptime=etime #if within bounds captures image at same exp-time
+    else: #if median is not within this range
+        diff = (128/(median))**1.6 #assumes x^1.6 response curve of camera sensor
+        exptime = etime*diff
+        if exptime > 90000000: #max exptime set to 90s
+            exptime = 90000000
+        else:
+            exptime=exptime
+
+
+    # captures the final image #
+    width, height = res[0], res[1] #back to desired image size
+    cmd = command(width,height,exptime,fname)
+    subprocess.call(cmd,shell=True) #take highres image
+
+
+    # returns the calculated expsoure time so it can be used in the next capture #
+    return exptime
+
+##############################################################################################################
+
+def newcapture(fname,etime,res=[4065, 3040]): ## INPROGRESS ##
+    ### captures an image using subprocess to use the libcamera-still command for pi with Bullseye OS, and estimates the neccessary exposure time needed before with a lower resolution glance
+    ## fname is the path to where the final image will be saved, etime is the exposure time for the glance - from this the neccessary exposure time will be estimated, res is the resolution needed for the final image
+
+
+    #function to use subprocess to capture image with raspistill
+    def command(width,height,et,imname):
         cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {et} -st -o {imname}"
         return cmd
 
@@ -388,5 +437,12 @@ def placeholder(dev, loc, t, opath):
     placeholder = np.concatenate(imagelist,axis=0) #image as whole array
 
     cv.imwrite(opath,placeholder)
+
+##############################################################################################################
+
+def upload(dev, loc, t, opath):
+    ''' secure copies the directory at the end of the night
+    '''
+
 
 ##############################################################################################################
