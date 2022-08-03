@@ -135,7 +135,7 @@ def capture(fname,etime,res=[4065, 3040]):
 
     #function to use subprocess to capture image with raspistill
     def command(width,height,et,imname):
-        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ss {et} -st -o {imname} -awb greyworld"
+        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ss {et} -o {imname} -ag 6 -awb greyworld"
         return cmd
 
 
@@ -181,10 +181,10 @@ def newcapture(fname,etime,res=[4065, 3040]): ## INPROGRESS ##
     ### captures an image using subprocess to use the libcamera-still command for pi with Bullseye OS, and estimates the neccessary exposure time needed before with a lower resolution glance
     ## fname is the path to where the final image will be saved, etime is the exposure time for the glance - from this the neccessary exposure time will be estimated, res is the resolution needed for the final image
 
-
+    """
     #function to use subprocess to capture image with raspistill
     def command(width,height,et,imname):
-        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {et} -st -o {imname}"
+        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ag 1 -ss {et} -ag 6 -o {imname}"
         return cmd
 
 
@@ -219,8 +219,10 @@ def newcapture(fname,etime,res=[4065, 3040]): ## INPROGRESS ##
     width, height = res[0], res[1] #back to desired image size
     cmd = command(width,height,exptime,fname)
     subprocess.call(cmd,shell=True) #take highres image
+    """
 
 
+    exptime = 0
     # returns the calculated expsoure time so it can be used in the next capture #
     return exptime
 
@@ -437,12 +439,5 @@ def placeholder(dev, loc, t, opath):
     placeholder = np.concatenate(imagelist,axis=0) #image as whole array
 
     cv.imwrite(opath,placeholder)
-
-##############################################################################################################
-
-def upload(dev, loc, t, opath):
-    ''' secure copies the directory at the end of the night
-    '''
-
 
 ##############################################################################################################
