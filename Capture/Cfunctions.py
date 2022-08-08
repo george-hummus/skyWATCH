@@ -135,7 +135,7 @@ def capture(fname,etime,res=[4065, 3040]):
 
     #function to use subprocess to capture image with raspistill
     def command(width,height,et,imname):
-        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ex off -ss {et} -o {imname} -ag 6 -awb greyworld"
+        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld"
         return cmd
 
 
