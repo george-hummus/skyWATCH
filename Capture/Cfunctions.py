@@ -46,6 +46,15 @@ def logger(logname,string):
 
 ##############################################################################################################
 
+def testlog(path,list):
+    ### appends all elements of a list to a line in a text file
+
+    with open(f"{path}/testlog.txt", 'a') as f:
+        for element in list:
+            f.write(str(element))
+
+##############################################################################################################
+
 def sun_check(Epos,t,sun):
     ### Finds the altitude of the sun, for the given location and time of day
     ## Sets active varible, depending on altitude of the sun
@@ -57,7 +66,7 @@ def sun_check(Epos,t,sun):
 
     salt = alt.degrees
 
-    if salt > 1.0:
+    if salt > -6.0: #only starts night mode when in nautical twilight or darker
         return False
     else:
         return True
@@ -128,26 +137,29 @@ def dome_detect(fname,templates,xy):
 
 ##############################################################################################################
 
-def capture(fname,etime,res=[4065, 3040]):
+def capture(fname,etime,res=[4065, 3040],ann=False):
     ### captures an image using subprocess to use the raspistill command, and estimates the neccessary exposure time needed before with a lower resolution glance
-    ## fname is the path to where the final image will be saved, etime is the exposure time for the glance - from this the neccessary exposure time will be estimated, res is the resolution needed for the final image
+    ## fname is the path to where the final image will be saved, etime is the exposure time for the glance - from this the neccessary exposure time will be estimated, res is the resolution needed for the final image, ann is boolean if you want the image to be annotated
 
 
     #function to use subprocess to capture image with raspistill
-    def command(width,height,et,imname):
-        cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld"
+    def command(width,height,et,imname,a):
+        if a==False:
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld"
+        else:
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -ae 15,0xff,0x808000 -a 'Image:{fname} | Expsoure time: {exptime}'"
         return cmd
 
 
     # low res glance used to estimate exp time needed #
     width, height = 825, 640
-    imname = ".glance.jpg"
-    cmd = command(width,height,etime,imname)
+    imname = ".glance.png"
+    cmd = command(width,height,etime,imname,a=False)
     subprocess.call(cmd,shell=True)
 
 
     # estimate neccessary expsoure time #
-    flat = cv.imread(".glance.jpg",0).flatten() #read in glance as 1d array of pixel values
+    flat = cv.imread(".glance.png",0).flatten() #read in glance as 1d array of pixel values
     median = np.median(flat) #median of the pixel counts of the glance
     if median == 0:
         median = 1 #to avoid divide by zero errors
@@ -168,7 +180,7 @@ def capture(fname,etime,res=[4065, 3040]):
 
     # captures the final image #
     width, height = res[0], res[1] #back to desired image size
-    cmd = command(width,height,exptime,fname)
+    cmd = command(width,height,exptime,fname,a=ann)
     subprocess.call(cmd,shell=True) #take highres image
 
 
@@ -352,12 +364,14 @@ def timelapse(images,path,res=[825,640]):
 ##############################################################################################################
 
 # function to construct the whole thing
-def placeholder(dev, loc, t, opath):
-    ''' produces an automated placeholder image for given;
-    device name (less than 16 charcaters) - dev,
-    location name (less than 16 charcaters) - loc,
-    and UTC time (in format HH:MM:SS) - t.
-    Saves to path and file name given by opath argument.
+def placeholder(dev, loc, t, opath, glance):
+    ''' Produces an automated placeholder image for given:
+    - device name (less than 16 charcaters) - dev
+    - location name (less than 16 charcaters) - loc
+    - UTC time (in format HH:MM:SS) - t
+    Overlays the placeholder onto the glance image that indicated the
+    dome was close located at path `glance`.
+    Saves to path and file name given by `opath` argument.
         Note, only accepts alphanumeric characters and colons,
         any other charcters will be replaced with unknown charcter symbol.
     '''
@@ -438,6 +452,20 @@ def placeholder(dev, loc, t, opath):
 
     placeholder = np.concatenate(imagelist,axis=0) #image as whole array
 
-    cv.imwrite(opath,placeholder)
+    # combines the placeholder with the glance image #
+    cv.imwrite(".ph.png",placeholder) #save temp ph image
+    g = cv.imread(glance) #load in glance
+    ph = cv.imread(".ph.png") #load in temp ph image
+
+    #invert placholder colour so can see when overlaied
+    ph_inv = np.invert(ph)
+
+    #resize placeholder to be same size as glance
+    height = g.shape[0]
+    width = g.shape[1]
+    ph_big = cv.resize(ph_inv, [width,height])
+    ph_blend = cv.addWeighted(g,0.5,ph_big,0.4,0) #blend the two images
+
+    cv.imwrite(opath,ph_blend) #save image
 
 ##############################################################################################################
