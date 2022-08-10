@@ -26,7 +26,8 @@ def setup():
         lat = input("Latitude of location (in decimal degrees): ")
         long = input("Longitude of location (in decimal degrees): ")
         elv = input("Elevation above sea-level of location (in meteres): ")
-        prams = {"device_name":devname,"location":locname,"latitude":float(lat),"longitude":float(long),"elevation":float(elv)} #saves parameters as a directory, which will be used in the capture scipt and to save the JSON
+        fmt = input("Format to save images as ('jpg' or 'png'): ")
+        prams = {"device_name":devname,"location":locname,"latitude":float(lat),"longitude":float(long),"elevation":float(elv),"image_format":fmt} #saves parameters as a directory, which will be used in the capture scipt and to save the JSON
         with open('setup.json', 'w') as fp: #saves setupfile as a json
             json.dump(prams, fp,indent=4)
 
@@ -96,7 +97,7 @@ def startup(t,devname):
 
 ##############################################################################################################
 
-def dome_detect(fname,templates,xy):
+def dome_detect(fname,templates,xy,testmode=False):
     ### DETECTS IF DOME IS OPEN OR CLOSED
     ## fname is the name of captured image; templates is list of the templates used to detect if the dome is closed; xy is a list containing the x detection limits at index 0 and y detection limits at index 1; res is size you want to shink images too when processing, default is full res
 
@@ -131,13 +132,20 @@ def dome_detect(fname,templates,xy):
         else:
             results.append(False)
 
+        if testmode == True:
+            print(f"x{j} = {max_loc[0]}")
+            print(f"y{j} = {max_loc[0]}")
+            print(f"loc{j} result = {results [j]}")
+
     domestatus = (results[0] or results[1])
 
     return domestatus
 
+
+
 ##############################################################################################################
 
-def capture(fname,etime,res=[4065, 3040],ann=False,prams={"device_name":"pi","location":"earth"},t="00-00-00 00:00:00"):
+def capture(fname,etime,format="jpg",res=[4065, 3040],ann=False,prams={"device_name":"pi","location":"earth"},t="00-00-00 00:00:00"):
     ### captures an image using subprocess to use the raspistill command, and estimates the neccessary exposure time needed before with a lower resolution glance
     ## fname is the path to where the final image will be saved, etime is the exposure time for the glance - from this the neccessary exposure time will be estimated, res is the resolution needed for the final image, ann is boolean if you want the image to be annotated
 
@@ -145,21 +153,21 @@ def capture(fname,etime,res=[4065, 3040],ann=False,prams={"device_name":"pi","lo
     #function to use subprocess to capture image with raspistill
     def command(width,height,et,imname,a):
         if a==False:
-            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e png -ex off"
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e {format} -ex off"
         else:
-            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e png -ex off -ae 64,0xff,0x808000 -a 1024 -a ' Device: {prams['device_name']} | Location: {prams['location']} | Time: {t} | Expsoure time: {float('%.2g' % (et/10e6))} s '"
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e {format} -ex off -ae 64,0xff,0x808000 -a 1024 -a ' Device: {prams['device_name']} | Location: {prams['location']} | Time: {t} | Expsoure time: {float('%.2g' % (et/10e6))} s '"
         return cmd
 
 
     # low res glance used to estimate exp time needed #
     width, height = 825, 640
-    imname = ".glance.png"
+    imname = f".glance.{format}"
     cmd = command(width,height,etime,imname,a=False)
     subprocess.call(cmd,shell=True)
 
 
     # estimate neccessary expsoure time #
-    flat = cv.imread(".glance.png",0).flatten() #read in glance as 1d array of pixel values
+    flat = cv.imread(f".glance.{format}",0).flatten() #read in glance as 1d array of pixel values
     median = np.median(flat) #median of the pixel counts of the glance
     if median == 0:
         median = 1 #to avoid divide by zero errors

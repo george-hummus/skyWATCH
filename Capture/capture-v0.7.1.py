@@ -11,21 +11,19 @@ What it does:
     - checks if it is still night-time mode (if not switches to day-time; if so continues).
     - detects if the dome is open via taking a low-resolution temporary image
     - if the dome is open:
-        - takes an exposure using subprocess to call raspistill; estimates the exposure time this image using an estimate for the sensor's light sensitivity and a lower resolution temporary image taken at with the exposure time of the previous on sky image (max exposure time for pi HQ camera is 230s).
+        - takes an exposure using subprocess to call raspistill; estimates the exposure time this image using an estimate for the sensor's light sensitivity and a lower resolution temporary image taken at with the exposure time of the previous on sky image (max exposure time for pi HQ camera is set to be 90s).
+            - images are annoted with device name, location, time, and exposure time
         - calculates the time of day (depends on the sun's altitude)
         - calculates the moon's altitude, phase, and illumination
-        - reads images metadata (exposure time, height, width, etc.,)
-
         - saves all info to a JSON file with the same name as the image and in the same directory
     - if the dome is closed:
         - device sleeps for 1 min then takes a temporary image each minute to check if it has reopened
         - also automatically creates a placeholder image used in timelapse for when the dome is closed
-        - uses separate exposure time for if the dome was previosuly closed to avoid under or over exposing the dome when if closes
 
     - clears memory after each night capture to reduce the load on the raspberry pi
     - no longer any set time delays between captures
     - at the end of the night it converts the images into a timelapse mp4
-    - all exposures are now PNG format and are annoted with file name and exposure time (more varibles to come...)
+    - all exposures can be specified to be in JPG or PNG format (via editing the setup file)
 
 
 To-do:
@@ -44,13 +42,14 @@ from skyfield.api import N,E, wgs84, load
 import time
 from Cfunctions import *
 import gc
-import datetime as dt
 
 ### SETUP ###
 prams = setup() #loads in setup json containing the paramters for the device and its location
 
 #defines the name of the device
 devname = prams["device_name"]
+#defines the image format to save the images as
+ifmt = prams["image_format"]
 
 #loads in ephemerides and time scale
 eph = load('de421.bsp')
@@ -80,7 +79,7 @@ while True:
         active = sun_check(Epos,tnow,sun)
         if active == True:
             path,logname,imlist,datenow = startup(tnow,devname)
-            logger(logname,f"Capture Script Version: 0.7.1 testing \n\n")
+            logger(logname,f"Capture Script Version: 0.7.1 \n\n")
             break
         else:
             time.sleep(60) #checks sun's altitude every min
@@ -106,7 +105,7 @@ while True:
             break
         else:
             # low resolution glance #
-            img_path = f"{path}/.glance.png"
+            img_path = f"{path}/.glance.{ifmt}"
 
             temp_exptime = capture(img_path,exptime,res=[825,640]) #temp exp time, will be made offical if dome is open
 
@@ -128,7 +127,7 @@ while True:
             timestr = tnow.utc_strftime("%H:%M:%S")
 
             # capture full resolution image #
-            img_name = f"{tnowfn}_{devname}.png"
+            img_name = f"{tnowfn}_{devname}.{ifmt}"
             img_path = f"{path}/{img_name}"
             exptime = capture(img_path,exptime,res=fullres,ann=True,prams=prams,t=tnowstr)
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
@@ -158,8 +157,8 @@ while True:
             logger(logname,"Dome is closed\n\n")
 
             # makes placeholder and appends it to image list and file #
-            img_path = f"{path}/PH-{tnowfn}_{devname}.png"
-            placeholder(devname, prams["location"], timestr, img_path, f"{path}/.glance.png")
+            img_path = f"{path}/PH-{tnowfn}_{devname}.{ifmt}"
+            placeholder(devname, prams["location"], timestr, img_path, f"{path}/.glance.{ifmt}")
             imlist.append(img_path) #appends path to image to list of images
             logger(f"{path}/images.list",f"{img_path}\n") #appends path to image to file of list of images
 

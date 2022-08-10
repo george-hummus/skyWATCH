@@ -1,31 +1,24 @@
 '''
-Testing version of v0.7.1 of the capture script for the skyWATCH camera - depends on the Cfunctions.py file.
+Day testing version of v0.7.1 of the capture script for the skyWATCH camera - depends on the Cfunctions.py file.
 
 What it does:
-- calculates whether it should open depending on the time of day
-- if in daytime mode:
-    - checks every minute if the sun is less than -6 degrees above horizon (end of civil twilight)
-    - if it is then changes to night-time mode, makes a directory to save images to and creates a log for the night where it notes down key info
-    - if not it stays in daytime mode
-- if in night-time mode
-    - checks if it is still night-time mode (if not switches to day-time; if so continues).
-    - detects if the dome is open via taking a low-resolution temporary image
-    - if the dome is open:
-        - takes an exposure using subprocess to call raspistill; estimates the exposure time this image using an estimate for the sensor's light sensitivity and a lower resolution temporary image taken at with the exposure time of the previous on sky image (max exposure time for pi HQ camera is set to be 90s).
-            - images are annoted with device name, location, time, and exposure time
-        - calculates the time of day (depends on the sun's altitude)
-        - calculates the moon's altitude, phase, and illumination
-        - saves all info to a JSON file with the same name as the image and in the same directory
-    - if the dome is closed:
-        - device sleeps for 1 min then takes a temporary image each minute to check if it has reopened
-        - also automatically creates a placeholder image used in timelapse for when the dome is closed
+- detects if the dome is open via taking a low-resolution temporary image
+- if the dome is open:
+    - takes an exposure using subprocess to call raspistill; estimates the exposure time this image using an estimate for the sensor's light sensitivity and a lower resolution temporary image taken at with the exposure time of the previous on sky image (max exposure time for pi HQ camera is set to be 90s).
+    - calculates the time of day (depends on the sun's altitude)
+    - calculates the moon's altitude, phase, and illumination
+    - reads images metadata (exposure time, height, width, etc.,)
 
-    - clears memory after each night capture to reduce the load on the raspberry pi
-    - no longer any set time delays between captures
-    - at the end of the night it converts the images into a timelapse mp4
-    - all exposures can be specified to be in JPG or PNG format (via editing the setup file)
+    - saves all info to a JSON file with the same name as the image and in the same directory
+- if the dome is closed:
+    - device sleeps for 1 min then takes a temporary image each minute to check if it has reopened
+    - also automatically creates a placeholder image used in timelapse for when the dome is closed
+    - uses separate exposure time for if the dome was previosuly closed to avoid under or over exposing the dome when if closes
 
-    * in this testing script a separate timestamped testing log is produced *
+- clears memory after each night capture to reduce the load on the raspberry pi
+- no longer any set time delays between captures
+- at the end of the night it converts the images into a timelapse mp4
+- all exposures are now PNG format and are annoted with device name, location, time, and exposure time (more varibles to come...)
 
 
 To-do:
@@ -69,6 +62,7 @@ templates = ['dome-templates/hflr-template1.jpg', 'dome-templates/hflr-template2
 fullres = [4065, 3040] #defines the full resolution of the images
 
 
+
 ### OPERATIONAL LOOP ###
 while True:
 
@@ -76,51 +70,63 @@ while True:
     while active == False:
         # check the time to see if sun is less than 1deg above horizon #
         tnow = ts.now() #saves time now
+        i=1
 
-        active = sun_check(Epos,tnow,sun)
+        active = True #force active always
         if active == True:
             path,logname,imlist,datenow = startup(tnow,devname)
-            logger(logname,f"Capture Script Version: 0.7.1-test \n\n")
-            testlog(path,["Night started @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n\n"]) ##
+            logger(logname,f"Capture Script Version: 0.7.1 testing \n\n")
+            print("Started @ ", dt.datetime.now().strftime("%H:%M:%S"))
             break
         else:
             time.sleep(60) #checks sun's altitude every min
+
+
 
 
     ## NIGHT TIME MODE ##
     while active == True:
         # check the time to see if sun is less than 1deg above horizon #
         tnow = ts.now() #saves time now
-        active = sun_check(Epos,tnow,sun)
+        active = True #force active always
 
         # convert time into stings #
         timestr = tnow.utc_strftime("%H:%M:%S")
         tnowfn = tnow.utc_strftime("%Y%m%d_%H%M%S")
         logger(logname,f"Time: {timestr}\n")
 
+        if i >20:
+            active = False
+        else:
+            active = True
+
+        print(i)
+
         if active == False:
             logger(logname,f"Ending captures for the night and creating timelapse.\n")
-            testlog(path,["Night ended @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("Night ended @ ", dt.datetime.now().strftime("%H:%M:%S"))
             timelapse(imlist,f'{path}/timelapse-{datenow}_{devname}.mp4')
             logger(logname,f"Timelapse movie saved as: timelapse-{datenow}_{devname}.mp4\n")
-            testlog(path,["Saved timelapse @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("Saved timelapse @ ", dt.datetime.now().strftime("%H:%M:%S"))
 
             logger(logname,"\nNIGHT END\n")
-            break
+            print("end")
+            exit()
         else:
             # low resolution glance #
             img_path = f"{path}/.glance.{ifmt}"
 
-            testlog(path,["glanced @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("glanced @ ", dt.datetime.now().strftime("%H:%M:%S"))
 
             temp_exptime = capture(img_path,exptime,res=[825,640]) #temp exp time, will be made offical if dome is open
 
 
-            testlog(path,["finshed glancing @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("finshed glancing @ ", dt.datetime.now().strftime("%H:%M:%S"))
 
             # check the status of the dome using glance #
-            domestatus = dome_detect(img_path,templates,templims)
-            testlog(path,["checked if dome is open @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            domestatus = dome_detect(img_path,templates,templims, testmode=True)
+            print("checked if dome is open @ ", dt.datetime.now().strftime("%H:%M:%S"))
+            print(f"domestatus: {domestatus}")
 
 
         # OPEN DOME MODE #
@@ -136,14 +142,14 @@ while True:
             tnowfn = tnow.utc_strftime("%Y%m%d_%H%M%S") #filename version
             timestr = tnow.utc_strftime("%H:%M:%S")
 
-            testlog(path,["Dome is open @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("Dome is open @ ", dt.datetime.now().strftime("%H:%M:%S"))
 
             # capture full resolution image #
             img_name = f"{tnowfn}_{devname}.{ifmt}"
             img_path = f"{path}/{img_name}"
-            testlog(path,["start full res capture @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("start full res capture @ ", dt.datetime.now().strftime("%H:%M:%S"))
             exptime = capture(img_path,exptime,res=fullres,ann=True,prams=prams,t=tnowstr)
-            testlog(path,["captured full res image @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("captured full res image @ ", dt.datetime.now().strftime("%H:%M:%S"))
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
 
             imlist.append(img_path) #appends path to image to list of images
@@ -169,20 +175,22 @@ while True:
         else:
             # logs dome is closed #
             logger(logname,"Dome is closed\n\n")
-            testlog(path,["dome is closed @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("dome is closed @ ", dt.datetime.now().strftime("%H:%M:%S"))
 
             # makes placeholder and appends it to image list and file #
             img_path = f"{path}/PH-{tnowfn}_{devname}.{ifmt}"
             placeholder(devname, prams["location"], timestr, img_path, f"{path}/.glance.{ifmt}")
-            testlog(path,["made placeholder @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("made placeholder @ ", dt.datetime.now().strftime("%H:%M:%S"))
             imlist.append(img_path) #appends path to image to list of images
             logger(f"{path}/images.list",f"{img_path}\n") #appends path to image to file of list of images
 
             # delay of 60s if dome is closed #
             time.sleep(60)
-            testlog(path,["finished 60s of sleep @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+            print("finished 60s of sleep @ ", dt.datetime.now().strftime("%H:%M:%S"))
 
-        testlog(path,["start memory clean up @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
+        print("start memory clean up @ ", dt.datetime.now().strftime("%H:%M:%S"))
         gc.collect() #garbage collection at end of each cycle to free up memory
-        testlog(path,["end memory clean up @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
-        testlog(path,["\n"]) ##
+        print("end memory clean up @ ", dt.datetime.now().strftime("%H:%M:%S"))
+        print("\n")
+
+        i+=1
