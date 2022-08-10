@@ -147,7 +147,7 @@ def capture(fname,etime,res=[4065, 3040],ann=False):
         if a==False:
             cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e png"
         else:
-            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e png -ae 64,0xff,0x808000 -a 1024 -a ' Image: {fname} | Expsoure time: {exptime/1000000} s '"
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e png -ae 64,0xff,0x808000 -a 1024 -a ' Image: {fname[13:]} | Expsoure time: {float('%.2g' % (et/10e6))} s '"
         return cmd
 
 

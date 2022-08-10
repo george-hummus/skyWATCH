@@ -64,6 +64,7 @@ domestatus = False #boolean to check if the dome is open or not - starts on Fals
 exptime = 500000 #inital exp time - starts at 0.5s (units are ns)
 templims = [[[122,172],[520,570]],[[107,157],[28,78]]] #limits for the template matching
 templates = ['dome-templates/hflr-template1.jpg', 'dome-templates/hflr-template2.jpg'] #paths to templates
+fullres = [4065, 3040] #defines the full resolution of the images
 
 
 ### OPERATIONAL LOOP ###
@@ -139,7 +140,7 @@ while True:
             img_name = f"{tnowfn}_{devname}.png"
             img_path = f"{path}/{img_name}"
             testlog(path,["start full res capture @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
-            exptime = capture(img_path,exptime,ann=True)
+            exptime = capture(img_path,exptime,res=fullres,ann=True)
             testlog(path,["captured full res image @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
 
@@ -149,7 +150,7 @@ while True:
 
             # collects all info #
             skyprops = SnM(Epos,tnow,eph) #solar, day period, and lunar properties
-            improps = Iprops(img_path) #image properties
+            improps = [exptime/10e6, fullres[0], fullres[1]] #saves exptime (in secs), and image width and height
 
 
             # saves info as a JSON #
