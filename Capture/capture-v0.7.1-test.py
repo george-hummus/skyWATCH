@@ -140,7 +140,7 @@ while True:
             img_name = f"{tnowfn}_{devname}.png"
             img_path = f"{path}/{img_name}"
             testlog(path,["start full res capture @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
-            exptime = capture(img_path,exptime,res=fullres,ann=True)
+            exptime = capture(img_path,exptime,res=fullres,ann=True,prams=prams,t=tnowstr)
             testlog(path,["captured full res image @ ", dt.datetime.now().strftime("%H:%M:%S"),"\n"]) ##
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
 

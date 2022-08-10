@@ -130,7 +130,7 @@ while True:
             # capture full resolution image #
             img_name = f"{tnowfn}_{devname}.png"
             img_path = f"{path}/{img_name}"
-            exptime = capture(img_path,exptime,res=fullres,ann=True)
+            exptime = capture(img_path,exptime,res=fullres,ann=True,prams=prams,t=tnowstr)
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
 
             imlist.append(img_path) #appends path to image to list of images
