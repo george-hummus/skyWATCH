@@ -97,9 +97,10 @@ def startup(t,devname):
 
 ##############################################################################################################
 
-def dome_detect(fname,templates,xy,testmode=False):
+def dome_detect(fname,templates,xy,testmode=False,dynamic=False):
     ### DETECTS IF DOME IS OPEN OR CLOSED
     ## fname is the name of captured image; templates is list of the templates used to detect if the dome is closed; xy is a list containing the x detection limits at index 0 and y detection limits at index 1; res is size you want to shink images too when processing, default is full res
+    # if dynamic mode is enabled the template limits will update with each iteration if the domestatus comes back as closed
 
     # uses openCV to read image
     img = cv.imread(fname,0)
@@ -114,6 +115,8 @@ def dome_detect(fname,templates,xy,testmode=False):
     #split the x and y limits
     limsx = xy[0]
     limsy = xy[1]
+
+    coords = []
 
     for j in range(len(templates)): # matches however many templates there are
 
@@ -136,10 +139,20 @@ def dome_detect(fname,templates,xy,testmode=False):
             print(f"x{j} = {max_loc[0]}")
             print(f"y{j} = {max_loc[0]}")
             print(f"loc{j} result = {results [j]}")
+        if dynamic == True:
+            coords.append(max_loc)
 
     domestatus = (results[0] or results[1])
 
-    return domestatus
+    if dynamic ==True:
+        if domestatus == True:
+        # template limits only updated if it is true that the dome is closed
+            xy = [[[coords[0][0]-50,coords[0][0]+50],[coords[1][0]-50,coords[1][0]+50]], #new xlims
+            [[coords[0][1]-50,coords[0][1]+50],[coords[1][1]-50,coords[1][1]+50]]] #new ylims
+        return domestatus, xy
+
+    else:
+        return domestatus
 
 
 
@@ -153,10 +166,11 @@ def capture(fname,etime,format="jpg",res=[4065, 3040],ann=False,prams={"device_n
     #function to use subprocess to capture image with raspistill
     def command(width,height,et,imname,a):
         if a==False:
-            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e {format} -ex off"
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e {format} -ex off -cfx 128:128"
         else:
-            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e {format} -ex off -ae 64,0xff,0x808000 -a 1024 -a ' Device: {prams['device_name']} | Location: {prams['location']} | Time: {t} | Expsoure time: {float('%.2g' % (et/10e6))} s '"
+            cmd = f"raspistill -w {width} -h {height} -t 10 -bm -ss {et} -o {imname} -ag 6 -awb greyworld -e {format} -ex off -cfx 128:128 -ae 64,0xff,0x808000 -a 1024 -a ' Device: {prams['device_name']} | Location: {prams['location']} | Time: {t} | Expsoure time: {float('%.2g' % (et/1e6))} s '"
         return cmd
+        # -cfx 128:128 saves out greyscale image
 
 
     # low res glance used to estimate exp time needed #
