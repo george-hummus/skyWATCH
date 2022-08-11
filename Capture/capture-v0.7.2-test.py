@@ -147,7 +147,7 @@ while True:
             st = time.time() #start time
             exptime = capture(img_path,exptime,res=fullres,ann=True,prams=prams,t=tnowstr)
             et = time.time() #end time
-            testlog(path,["captured full res image @ ", dt.datetime.now().strftime("%H:%M:%S"),f"- with exptime of {exptime/1e6}s this took {st-et} seconds \n"]) ##
+            testlog(path,["captured full res image @ ", dt.datetime.now().strftime("%H:%M:%S"),f"- with exptime of {exptime/1e6}s this took {et-st} seconds \n"]) ##
             logger(logname,f"Image {img_name} captured @ {timestr}\n") #logs capture
 
             imlist.append(img_path) #appends path to image to list of images
