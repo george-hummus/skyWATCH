@@ -521,7 +521,7 @@ def placeholder(dev, loc, t, opath, glance):
     '''
 
     #loads in dict with the arrays corresponding to the letters
-    letsnums=np.load("chars.npy",allow_pickle=True).item()
+    letsnums=np.load("chars2.npy",allow_pickle=True).item()
     #spacing tiles
     blanktile = np.zeros([20,10])
     halfblank = np.zeros([20,5])
