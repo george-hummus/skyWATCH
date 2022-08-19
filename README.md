@@ -1,5 +1,5 @@
 # skyWATCH
-#### This respository contains prototype code which is being used to create RaspberryPi all-in-one all-sky camera and weather station for use at the Observatory Roque de la Muchachos. 
+#### This respository contains prototype code which is being used to create RaspberryPi all-in-one all-sky camera and weather station for use at the Observatory Roque de la Muchachos.
 
 Directory Guide:
 - Sensor_stuff: contains code being trialed for weather monitoring with the BME280 Environmental Sensor
@@ -10,4 +10,4 @@ Directory Guide:
 - picam: contains test code for conrolling the Raspberry Pi High Quality Camera which can de depolyed as the all-sky camera in the skyWATCH devices.
 - astro-info: a script which uses python package Skyfield to find the position of the sun and moon, so the astronomical conditions can be recoreded into a JSON file.
 - Capture: contains scripts for capturing images form the all-sky camera. Integrates scripts developed in astro-info and dome-detect directories.
-
+  - Old-scripts: contains all previous versions of the capture scripts.
