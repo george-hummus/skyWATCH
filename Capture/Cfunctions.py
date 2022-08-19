@@ -74,17 +74,18 @@ def sun_check(Epos,t,sun):
 
 ##############################################################################################################
 
-def startup(t,devname):
+def startup(t,devname,pextra=""):
     ### Start up function for when switch to night mode
     ## Creates new directory to save images to, creates the log and the image list
     # t is the current time
+    # pextra is a string that will be added to the end of the output directory
 
     # strings for current date and time
     datenow = t.utc_strftime("%Y%m%d")
     timestr = t.utc_strftime("%H:%M:%S")
 
     # creates the directory for the night
-    path = f"out/{datenow}"
+    path = f"out/{datenow}{pextra}"
     os.mkdir(path)
 
     #creates the night log
@@ -99,7 +100,7 @@ def startup(t,devname):
 
 def dome_detect(fname,templates,xy,testmode=False,dynamic=False):
     ### DETECTS IF DOME IS OPEN OR CLOSED
-    ## fname is the name of captured image; templates is list of the templates used to detect if the dome is closed; xy is a list containing the x detection limits at index 0 and y detection limits at index 1; res is size you want to shink images too when processing, default is full res
+    ## fname is the name of captured image; templates is list of the templates used to detect if the dome is closed; xy is a list containing the x detection limits at index 0 and y detection limits at index 1;
     # if dynamic mode is enabled the template limits will update with each iteration if the domestatus comes back as closed
 
     # uses openCV to read image
@@ -154,7 +155,128 @@ def dome_detect(fname,templates,xy,testmode=False,dynamic=False):
     else:
         return domestatus
 
+##############################################################################################################
 
+def dome_detect2(fname,templates,l1,l2,maxL,domestatus):
+    '''
+    NEW FUNCTION TO DETECT IF WHT-DIMM DOME IS OPEN OR CLOSED
+
+    Arguments:
+        - fname: the name of captured image (needs 825x640 resolution)
+        - templates: list of the 2 templates used to detect if the dome is closed
+        - l1: the the x and y detection limits for the first template
+        - l2: the the x and y detection limits for the second template
+        - maxL: the maximum range that each of the template limits (l1 and l2) can have
+        - domestatus: boolean indicating wether the dome was closed or not previously (True = dome closed, False = dome open)
+
+    Returns:
+        - domestatus: boolean indicating is dome is closed or not (True = dome closed, False = dome open)
+
+    Process:
+        Tries to match templates of sections of the dome to the image. If the coorindates on the images where the script thinks the template is located are within the limits of the real position then a True result is returned indicating the dome is close, otherwise False is returned indicating the dome is open.
+
+    New Features:
+        - For the first image either templates can be within the limits for the dome to be considered to be closed (same as if dome was closed).
+        - If the previous image indicated the dome was open then both templates need to be matched for it to report that the dome has closed.
+        - If the previous image indicated the dome was closed then either templates can be matched for it to report that the dome is still closed.
+        - If the domestatus returned is True (i.e., the dome is closed), then the limits are updated for each template if they matched. This updated is +/-50 pixels from the newly indicated position.
+            - This is to make the script dynamic so it can compensate for any changes in the images.
+            - The upper limits which cannot be exceeded when changing the limti are 25>=x>=325 & 25>=y>=225 for template 1, and 450>=x>=735 & 0>=y>=200.
+        - The scripts will calculate if the new position would cause the templates to overlap. If they do it is an automatic False domestatus.
+
+    '''
+
+    # uses openCV to read image
+    img = cv.imread(fname,0)
+
+    # post processing of image to highlight dome fetures
+    img = np.invert(cv.equalizeHist(img)).clip(min=150)
+
+    method = eval('cv.TM_CCOEFF') #define method to match tmeplates to image
+
+    lims = [l1,l2] #combine limits into ones
+    # so first index indicates template, second x/y, and third upper/lower
+
+    coords = [] #will be filled with predicted top left coordinate of each template
+    temp_dims = [] #will be filled with the width and height of each template
+
+    for j in range(len(templates)):
+
+        template = cv.imread(templates[j],0) #loads template
+
+        # Apply template Matching
+        res = cv.matchTemplate(img,template,method)
+        min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+
+        coords.append(max_loc) #max_loc is the predicted upper left coordinate of the template in the image
+        temp_dims.append(template.shape[::-1])
+
+
+    #checking if the predicted positions cause the templates to overlap
+    #left and right sides of template 1
+    L1 = coords[0][0]
+    R1 = L1+temp_dims[0][0]
+    #left and right sides of template 2
+    L2 = coords[1][0]
+    R2 = L2+temp_dims[1][0]
+    #top and bottom sides of template 1
+    T1 = coords[0][1]
+    B1 = T1+temp_dims[0][1]
+    #top and bottom sides of template 2
+    T2 = coords[1][1]
+    B2 = T2+temp_dims[1][1]
+
+    if ((R1<L2)or(R2<L1))or((B1<T2)or(B2<T1)):
+        # no overlap
+        results = []
+        for i in range(2):
+
+            if (coords[i][0] > lims[i][0][0]) & (coords[i][0] < lims[i][0][1]):
+                #within x limits?
+
+                if (coords[i][1] > lims[i][1][0]) & (coords[i][1] < lims[i][1][1]):
+                    #within y limits?
+
+                    results.append(True)
+                    #templates matches in x and y
+
+                    # As true we can update limits
+                    ux,lx = coords[i][0]+50, coords[i][0]-50 #new upper & lower x lims
+                    uy,ly = coords[i][1]+50, coords[i][1]-50 #new upper & lower y lims
+
+                    if lx < maxL[i][0][0]:
+                        lx = maxL[i][0][0]
+                    if ux > maxL[i][0][1]:
+                        ux = maxL[i][0][1]
+                    if ly < maxL[i][1][0]:
+                        ly = maxL[i][1][0]
+                    if uy > maxL[i][1][1]:
+                        uy = maxL[i][1][1]
+                    #if new limits are not within the maximum limits defined in the function then they are set to the maximum
+
+                    lims[i] = [[lx,ux],[ly,uy]]
+
+                else:
+                    results.append(False)
+                    #template matches in x, but not in y
+            else:
+                results.append(False)
+                #template macthes in neither x or y
+
+        if domestatus == True:
+            #dome was previosuly closed so either can match for dome to be repoerted as closed
+            domestatus = (results[0] or results[1])
+        else:
+            #dome was open previosuly so both must match for dome to be repoerted as closed
+            domestatus = (results[0] and results[1])
+
+    else:
+        # overlap
+        domestatus = False #if templates overlap then the script can't have detected them right so the dome must be open
+
+    l1, l2 = lims[0],lims[1]
+
+    return domestatus, l1, l2
 
 ##############################################################################################################
 
