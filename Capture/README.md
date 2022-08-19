@@ -1,4 +1,4 @@
-#### The necessary Hardware, Directories, Files, and Python Packages needed to run capture-v0.7.1.py
+#### The necessary Hardware, Directories, Files, and Python Packages needed to run capture-v0.7.2.py
 
 Hardware:
 - Raspberry Pi running bullseye with legacy camera support enabled
