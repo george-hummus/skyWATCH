@@ -11,3 +11,7 @@ Directory Guide:
 - astro-info: a script which uses python package Skyfield to find the position of the sun and moon, so the astronomical conditions can be recoreded into a JSON file.
 - Capture: contains scripts for capturing images form the all-sky camera. Integrates scripts developed in astro-info and dome-detect directories.
   - Old-scripts: contains all previous versions of the capture scripts.
+<<<<<<< HEAD
+=======
+
+>>>>>>> 58957cfed10ac0f2cd77b541f118a699de82f313
