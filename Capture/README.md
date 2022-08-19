@@ -1,5 +1,5 @@
 #### The necessary Hardware, Directories, Files, and Python Packages needed to run capture-v0.8.py
-##### All avalible in capture-v0.8.zip
+##### All avalible in [capture-v0.8.zip](https://github.com/george-hummus/skyWATCH/blob/master/Capture/capture-v0.8.zip)
 
 Hardware:
 - Raspberry Pi running bullseye with legacy camera support enabled
